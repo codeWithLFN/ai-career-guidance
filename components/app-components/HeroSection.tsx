@@ -1,14 +1,21 @@
+'use client'
 
+import { Button } from "@/components/app-components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { NextLogo } from "./next-logo";
-import { SupabaseLogo } from "./supabase-logo";
-import { Button } from "./app-components/ui/button";
+// import heroImage from "./assets/hero-illustration.jpg";
 import Image from 'next/image'
 
-export function Hero() {
+interface HeroSectionProps {
+  onGetStarted: () => void;
+}
+
+const HeroSection = ({ onGetStarted }: HeroSectionProps) => {
   return (
-    <div className="flex flex-col items-center">'
-      <div className="container mx-auto px-4 py-2 lg:py-2">
+    <section className="relative overflow-hidden">
+      {/* Background gradient overlay */}
+      <div className="absolute inset-0 hero-gradient opacity-[0.03]" />
+
+      <div className="container mx-auto px-4 py-20 lg:py-28">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Left content */}
           <div className="animate-fade-up">
@@ -28,10 +35,10 @@ export function Hero() {
             </p>
 
             <div className="flex flex-wrap gap-4">
-              <a href="/me"  className="flex text-sm px-8 py-3 leading-none border rounded text-white border-white hover:border-transparent hover:text-white-500 hover:bg-primary mt-4 lg:mt-0 bg-primary dark:text-gray-900">
+              <Button variant="hero" size="lg" onClick={onGetStarted} className="text-base px-8 py-6 bg-primary">
                 Start Your Assessment
                 <ArrowRight className="ml-1 h-5 w-5" />
-              </a>
+              </Button>
               <Button variant="outline" size="lg" className="text-base px-8 py-6">
                 Learn More
               </Button>
@@ -40,7 +47,11 @@ export function Hero() {
 
           {/* Right image */}
           <div className="animate-fade-up" style={{ animationDelay: "0.2s" }}>
-           
+            {/* <img
+              src={heroImage}
+              alt="Career guidance illustration showing interconnected career paths"
+              className="w-full rounded-2xl card-shadow"
+            /> */}
             <Image
               src="/assets/hero-illustration.jpg"
               width={500}
@@ -50,6 +61,8 @@ export function Hero() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
-}
+};
+
+export default HeroSection;
