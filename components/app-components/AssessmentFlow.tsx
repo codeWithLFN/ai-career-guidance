@@ -79,6 +79,8 @@ const AssessmentFlow = ({ onComplete, onBack }: AssessmentFlowProps) => {
   const personalityRecords = useSelector((state: RootState) => state.assessment.personality);
   const interestRecords = useSelector((state: RootState) => state.assessment.interests);
 
+  const recommendationsNew = useSelector((state: RootState) => state.recommendations);
+
   useEffect(() => {
     setData({
         ...data,
@@ -87,7 +89,7 @@ const AssessmentFlow = ({ onComplete, onBack }: AssessmentFlowProps) => {
         interests: interestRecords,
         personalityTraits: personalityRecords
       });
-
+   
   }, [])
 
   useEffect(() => {

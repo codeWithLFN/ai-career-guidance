@@ -3,10 +3,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { getAPIKey } from "./access";
 
-const API_KEY = process.env.GEMINI_API_KEY;
-console.log({API_KEY})
-
-
 
 export const analysePdfDocument = async (pdfBase64: string) => {
     const api_key = await getAPIKey();
@@ -17,7 +13,8 @@ export const analysePdfDocument = async (pdfBase64: string) => {
         .then((response) => response.arrayBuffer());
 
     const content = [
-        { text: "Extract modules related content of this PDF and return it as structured JSON format." },
+        { text: `Extract modules or subjects rename module name to property key to module_name and marks to percentage property related content of this PDF and return it as structured JSON format.
+            when return json use this json structure {modules:[{ module_name, percentage}]}` },
         {
             inlineData: {
                 mimeType: 'application/pdf',
