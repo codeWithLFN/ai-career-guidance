@@ -15,6 +15,8 @@ import {
   RefreshCw,
   Shield,
   Download,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 import type { AssessmentData } from "./AssessmentFlow";
 import { useDispatch, useSelector } from "react-redux";
@@ -64,6 +66,9 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   const [overallConfidence, setOverallConfidence] = useState<number>(0);
   const [savedHistoryId, setSavedHistoryId] = useState<string | null>(null);
   const [savedCareerNames, setSavedCareerNames] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const hasSaved = useRef(false);
 
   const dispatch = useDispatch()
@@ -71,10 +76,17 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   const recommendationsNew = useSelector((state: RootState) => state.recommendations);
   useEffect(() => {
     (async () => {
-      const reccomendationData = await loadRecommendations(assessmentData);
-      console.log({ reccomendationData })
+      setIsLoading(true);
+      setError(null);
+      try {
+        const reccomendationData = await loadRecommendations(assessmentData);
+      } catch (err) {
+        // Error is handled inside loadRecommendations
+      } finally {
+        setIsLoading(false);
+      }
     })();
-  }, [])
+  }, [retryCount])
 
   // Load saved career names on mount
   useEffect(() => {
@@ -134,16 +146,45 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   }, [recommendationsObject, overallConfidence]);
 
   const loadRecommendations = async (assessmentData: AssessmentData) => {
-    const recommendations = await getRecommendations({
-      subject: assessmentData.subjects,
-      skills: assessmentData.skills,
-      interests: assessmentData.interests,
-      personality: assessmentData.personalityTraits
-    });
-    console.log({ recommendations });
-    dispatch(addRecommendations(recommendations));
-    return recommendations;
+    try {
+      const recommendations = await getRecommendations({
+        subject: assessmentData.subjects,
+        skills: assessmentData.skills,
+        interests: assessmentData.interests,
+        personality: assessmentData.personalityTraits
+      });
+
+      if (!recommendations || recommendations.error) {
+        throw new Error(
+          recommendations?.error || "The AI engine did not return valid recommendations."
+        );
+      }
+
+      if (!recommendations.data?.recommendations || recommendations.data.recommendations.length === 0) {
+        throw new Error(
+          "No career recommendations could be generated from your profile. Please try adjusting your skills or interests."
+        );
+      }
+
+      dispatch(addRecommendations(recommendations));
+      return recommendations;
+    } catch (err: unknown) {
+      console.error("Recommendation error:", err);
+      const message =
+        err instanceof Error
+          ? err.message.includes("fetch")
+            ? "Unable to reach the career guidance service. Please check your connection and try again."
+            : err.message
+          : "We could not generate recommendations right now. Please try again.";
+      setError(message);
+      throw err;
+    }
   }
+
+  const handleRetry = () => {
+    setError(null);
+    setRetryCount((c) => c + 1);
+  };
 
   const onRetakeAssessment = () => {
     dispatch(clearAccademicRecord())
@@ -181,34 +222,92 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
             <div>
               <h1 className="text-2xl font-bold mb-2">Your Career Recommendations</h1>
               <p className="text-muted-foreground">
-                "Based on your academic profile, skills, interests, and personality traits.
+                Based on your academic profile, skills, interests, and personality traits.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {recommendationsObject.length > 0 && (
-                <Button variant="outline" onClick={handleDownloadReport}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Report
+            {!isLoading && !error && (
+              <div className="flex items-center gap-2">
+                {recommendationsObject.length > 0 && (
+                  <Button variant="outline" onClick={handleDownloadReport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Report
+                  </Button>
+                )}
+                <Button variant="outline" onClick={onRetakeAssessment}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retake Assessment
                 </Button>
-              )}
-              <Button variant="outline" onClick={onRetakeAssessment}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Retake Assessment
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </div>
-         {!summary &&
-         <div className="flex items-center justify-center flex-wrap gap-4">
-          <LoadingIndicator message={"Generating recommendations please wait..."}/>
-         </div>}
-        {summary &&
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <h1 className="text-2xl font-bold mb-2">Summary</h1>
-              <p className="text-muted-foreground text-sm">{summary}</p>
-            </div>
-          </div>}
+         {/* Loading State */}
+         {isLoading && !error && (
+           <div className="flex items-center justify-center py-16">
+             <div className="bg-card rounded-xl p-10 card-shadow max-w-md w-full text-center">
+               <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+                 <Loader2 className="h-8 w-8 text-primary animate-spin" />
+               </div>
+               <h3 className="text-lg font-semibold mb-2">Generating your career recommendations...</h3>
+               <p className="text-sm text-muted-foreground mb-6">
+                 Our AI is analyzing your academic profile, skills, interests, and personality traits to find your best career matches.
+               </p>
+               <div className="space-y-2 text-left max-w-xs mx-auto">
+                 {[
+                   "Analyzing academic profile",
+                   "Matching skills & interests",
+                   "Calculating career fit scores",
+                   "Preparing recommendations",
+                 ].map((step, i) => (
+                   <div key={step} className="flex items-center gap-2 text-xs text-muted-foreground animate-fade-up" style={{ animationDelay: `${i * 0.3}s` }}>
+                     <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
+                     {step}
+                   </div>
+                 ))}
+               </div>
+             </div>
+           </div>
+         )}
+
+         {/* Error State */}
+         {error && (
+           <div className="flex items-center justify-center py-16">
+             <div className="bg-card rounded-xl p-10 card-shadow border border-red-200 dark:border-red-900/30 max-w-md w-full text-center">
+               <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-5">
+                 <AlertCircle className="h-8 w-8 text-red-500" />
+               </div>
+               <h3 className="text-lg font-semibold mb-2">Something went wrong</h3>
+               <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">{error}</p>
+               <div className="flex items-center justify-center gap-3">
+                 <button
+                   onClick={handleRetry}
+                   className="flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                 >
+                   <RefreshCw className="h-4 w-4" />
+                   Try Again
+                 </button>
+                 <Button variant="outline" onClick={onRetakeAssessment}>
+                   Retake Assessment
+                 </Button>
+               </div>
+               {retryCount > 0 && (
+                 <p className="text-xs text-muted-foreground mt-4">
+                   Attempt {retryCount + 1} — If the issue persists, try retaking the assessment.
+                 </p>
+               )}
+             </div>
+           </div>
+         )}
+
+         {/* Summary */}
+         {!isLoading && !error && summary && (
+           <div className="flex items-center justify-between flex-wrap gap-4 mb-2">
+             <div>
+               <h1 className="text-2xl font-bold mb-2">Summary</h1>
+               <p className="text-muted-foreground text-sm">{summary}</p>
+             </div>
+           </div>
+         )}
 
         {/* Summary */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
