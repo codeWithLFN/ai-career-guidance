@@ -4,7 +4,7 @@ import { AuthButton } from "@/components/auth-button";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { hasEnvVars } from "@/lib/utils";
 import { Suspense } from "react";
-import { GraduationCap, History, Heart, Menu } from "lucide-react";
+import { GraduationCap, History, Heart, Menu, Settings, LayoutDashboard } from "lucide-react";
 
 export default function ProtectedLayout({
   children,
@@ -28,9 +28,11 @@ export default function ProtectedLayout({
               </div>
             </a>
 
-            {/* Desktop Nav Links */}
             <div className="hidden md:flex items-center gap-1 bg-muted/50 rounded-full px-1.5 py-1">
-              <NavLink href="/me" icon={<GraduationCap className="h-3.5 w-3.5" />}>
+              <NavLink href="/me" icon={<LayoutDashboard className="h-3.5 w-3.5" />}>
+                Dashboard
+              </NavLink>
+              <NavLink href="/me/assessment" icon={<GraduationCap className="h-3.5 w-3.5" />}>
                 Assessment
               </NavLink>
               <NavLink href="/me/history" icon={<History className="h-3.5 w-3.5" />}>
@@ -38,6 +40,9 @@ export default function ProtectedLayout({
               </NavLink>
               <NavLink href="/me/saved" icon={<Heart className="h-3.5 w-3.5" />}>
                 Saved
+              </NavLink>
+              <NavLink href="/me/settings" icon={<Settings className="h-3.5 w-3.5" />}>
+                Settings
               </NavLink>
             </div>
 
@@ -95,6 +100,13 @@ function MobileNav() {
           href="/me"
           className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
         >
+          <LayoutDashboard className="h-4 w-4" />
+          Dashboard
+        </a>
+        <a
+          href="/me/assessment"
+          className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
           <GraduationCap className="h-4 w-4" />
           Assessment
         </a>
@@ -113,6 +125,13 @@ function MobileNav() {
           Saved Careers
         </a>
         <div className="border-t border-border my-1" />
+        <a
+          href="/me/settings"
+          className="flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
+        >
+          <Settings className="h-4 w-4" />
+          Change Password
+        </a>
         <a
           href="/privacy"
           className="flex items-center gap-2.5 px-3 py-2.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-colors"
