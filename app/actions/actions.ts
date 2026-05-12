@@ -15,7 +15,8 @@ export const analysePdfDocument = async (pdfBase64: string) => {
 
     const content = [
         {
-            text: `Extract modules or subjects from this PDF and return as structured JSON. Rename module name to property key "module_name" and marks to "percentage" (as a number without the % sign). IMPORTANT: Do NOT include any "Overall Average" or aggregate/summary rows — only individual subjects. Use this JSON structure: {modules:[{ module_name, percentage }]}` },
+            text: `Extract modules or subjects from this PDF and return as structured JSON. Rename module name to property key "module_name" and marks to "percentage" (as a number without the % sign). IMPORTANT: Do NOT include any "Overall Average" or aggregate/summary rows — only individual subjects. Use this JSON structure: {modules:[{ module_name, percentage }]}`
+        },
         {
             inlineData: {
                 mimeType: 'application/pdf',
@@ -40,40 +41,70 @@ export const analysePdfDocument = async (pdfBase64: string) => {
     }
 }
 
-export const getRecommendations = async (data: { subject: any[], personality: any[], skills: any[], interests: any[] }) => {
+export const getRecommendations = async (data: {
+    subject: any[];
+    personality: any[];
+    skills: any[];
+    interests: any[];
+    consentToProcess?: boolean;
+}) => {
     try {
-        let subjects = {};
+        let subjects: Record<string, number> = {};
+
         // Filter out "Overall Average" and similar aggregate rows
         const filtered = data.subject.filter((obj: any) => {
-            const name = (obj.name || obj.module_name || '').toLowerCase().trim();
-            return !name.includes('overall average') && !name.includes('total') && !name.includes('aggregate');
-        });
-        filtered.forEach((obj: any) => {
-            // Clean percentage: remove extra % signs, parse as number
-            const pct = typeof obj.percentage === 'string'
-                ? obj.percentage.replace(/%/g, '').trim()
-                : obj.percentage;
-            subjects = { ...subjects, [obj.name || obj.module_name]: Number(pct) };
+            const name = (obj.name || obj.module_name || "").toLowerCase().trim();
+
+            return (
+                name &&
+                !name.includes("overall average") &&
+                !name.includes("total") &&
+                !name.includes("aggregate")
+            );
         });
 
-        const res = await fetch('https://acgs-ai-engine.vercel.app/api/predict', {
-            method: 'POST',
+        filtered.forEach((obj: any) => {
+            const subjectName = obj.name || obj.module_name;
+
+            // Clean percentage: remove extra % signs, parse as number
+            const pct =
+                typeof obj.percentage === "string"
+                    ? obj.percentage.replace(/%/g, "").trim()
+                    : obj.percentage;
+
+            const percentage = Number(pct);
+
+            if (subjectName && !Number.isNaN(percentage)) {
+                subjects[subjectName] = percentage;
+            }
+        });
+
+        const res = await fetch("https://acgs-ai-engine.vercel.app/api/predict", {
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json'
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                "academicResults": subjects,
-                "interests": data.interests,
-                "personalityTraits": data.personality
-            })
+                academicResults: subjects,
+                skills: data.skills,
+                interests: data.interests,
+                personalityTraits: data.personality,
+                consentToProcess: data.consentToProcess ?? true,
+            }),
+        });
 
-        })
+        if (!res.ok) {
+            throw new Error(`API request failed with status ${res.status}`);
+        }
+
         return await res.json();
     } catch (error) {
         console.error("Error calling API:", error);
+
         if (error instanceof Error) {
             throw new Error(`API Error: ${error.message}`);
         }
+
         throw new Error("An unknown error occurred while communicating with the API.");
     }
-}
+};
