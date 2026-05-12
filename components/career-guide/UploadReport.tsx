@@ -5,6 +5,7 @@ import LoadingIndicator from "../ui/loadingIndicator";
 import { useDispatch } from "react-redux";
 import { addAccademicRecord } from "@/lib/store/slices/academicSlice";
 import { findValueByKey, testData } from "@/lib/utils";
+import Disclaimer from "../ui/Disclaimer";
 
 /**
  * Convert a File object to a Base64 string
@@ -73,7 +74,7 @@ export const UploadReport: React.FC = () => {
                     Selected: {file.name}
                 </p>
             )}
-            {/* {documentData && (<div><pre>{documentData}</pre></div>)} */}
+
         </div>
     );
 };

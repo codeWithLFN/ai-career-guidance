@@ -22,6 +22,7 @@ import { getRecommendations } from "@/app/actions/actions";
 import { addRecommendations, clearRecommendations } from "@/lib/store/slices/recommendationSlice";
 import { clearAccademicRecord } from "@/lib/store/slices/academicSlice";
 import { clearAssessment } from "@/lib/store/slices/assessmentSlice";
+import LoadingIndicator from "../ui/loadingIndicator";
 
 interface CareerRecommendation {
   title: string;
@@ -96,6 +97,7 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
     dispatch(clearAccademicRecord())
     dispatch(clearAssessment())
     dispatch(clearRecommendations())
+    window.location.reload();
   }
 
   console.log({ assessment, recommendationsNew })
@@ -124,6 +126,10 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
             </Button>
           </div>
         </div>
+         {!summary &&
+         <div className="flex items-center justify-center flex-wrap gap-4">
+          <LoadingIndicator message={"Generating recommendations please wait..."}/>
+         </div>}
         {summary &&
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
