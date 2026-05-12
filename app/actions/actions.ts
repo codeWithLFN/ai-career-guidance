@@ -1,10 +1,7 @@
-
+'use server';
 
 import { GoogleGenAI } from "@google/genai";
 import { getAPIKey } from "./access";
-
-const API_KEY = process.env.GEMINI_API_KEY;
-console.log({API_KEY})
 
 
 
