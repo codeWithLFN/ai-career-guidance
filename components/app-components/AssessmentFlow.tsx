@@ -14,6 +14,7 @@ import { RootState } from "@/lib/store/store";
 import ModuleProgress from "../ui/ModuleProgress";
 import { findValueByKey, normalizeObjects } from "@/lib/utils";
 import { addInterests, addPersonality, addSkills, addSubjects } from "@/lib/store/slices/assessmentSlice";
+import Disclaimer from "../ui/Disclaimer";
 
 
 export interface AssessmentData {
@@ -83,23 +84,23 @@ const AssessmentFlow = ({ onComplete, onBack }: AssessmentFlowProps) => {
 
   useEffect(() => {
     setData({
-        ...data,
-        subjects: subjectRecords,
-        skills: skillRecords,
-        interests: interestRecords,
-        personalityTraits: personalityRecords
-      });
-   
+      ...data,
+      subjects: subjectRecords,
+      skills: skillRecords,
+      interests: interestRecords,
+      personalityTraits: personalityRecords
+    });
+
   }, [])
 
   useEffect(() => {
     setData({
-        ...data,
-        subjects: subjectRecords,
-        skills: skillRecords,
-        interests: interestRecords,
-        personalityTraits: personalityRecords
-      });
+      ...data,
+      subjects: subjectRecords,
+      skills: skillRecords,
+      interests: interestRecords,
+      personalityTraits: personalityRecords
+    });
 
   }, [subjectRecords, skillRecords, personalityRecords, interestRecords])
 
@@ -238,7 +239,14 @@ const AssessmentFlow = ({ onComplete, onBack }: AssessmentFlowProps) => {
                 </p>
               </div>
               {!newObjects ?
-                <UploadReport />
+                <div className="flex flex-col items-center justify-center">
+                  <UploadReport />
+
+                  <div className="mt-5">
+                    <Disclaimer />
+                  </div>
+                </div>
+
                 :
                 <div>
                   <ModuleProgress
