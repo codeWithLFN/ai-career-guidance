@@ -217,7 +217,7 @@ export function generateRecommendationReport(data: ReportData) {
         doc.setTextColor(...COLORS.gray);
         doc.setFontSize(8);
         doc.setFont("helvetica", "normal");
-        const demandText = rec.jobDemand.split(".")[0];
+        const demandText = String(rec.jobDemand).split(".")[0];
         doc.text(`Demand: ${demandText}`, margin + 5, y + 14);
       }
 

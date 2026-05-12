@@ -10,11 +10,13 @@ import {
   GraduationCap,
   Trash2,
   Calendar,
+  Download,
+  AlertCircle,
 } from "lucide-react";
-import { Button } from "@/components/app-components/ui/button";
 import { getSavedCareers, unsaveCareer } from "@/app/actions/savedCareerActions";
 import LoadingIndicator from "@/components/ui/loadingIndicator";
 import Link from "next/link";
+import { generateSavedCareerReport } from "@/lib/generateSavedCareerReport";
 
 interface SavedCareer {
   id: string;
@@ -55,6 +57,7 @@ export default function SavedCareersPage() {
   const [careers, setCareers] = useState<SavedCareer[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -71,6 +74,17 @@ export default function SavedCareersPage() {
       setCareers((prev) => prev.filter((c) => c.career_name !== careerName));
     }
     setRemoving(null);
+    setConfirmDelete(null);
+  };
+
+  const handleDownload = (career: SavedCareer) => {
+    generateSavedCareerReport(career);
+  };
+
+  const handleDownloadAll = () => {
+    careers.forEach((career) => {
+      generateSavedCareerReport(career);
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -98,16 +112,29 @@ export default function SavedCareersPage() {
             href="/me"
             className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors mb-4"
           >
-            <ArrowLeft className="h-4 w-4" /> Back to Assessment
+            <ArrowLeft className="h-4 w-4" /> Back to Dashboard
           </Link>
 
-          <div className="flex items-center gap-3 mb-2">
-            <Heart className="h-6 w-6 text-rose-500 fill-rose-500" />
-            <h1 className="text-2xl font-bold">Saved Careers</h1>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <Heart className="h-6 w-6 text-rose-500 fill-rose-500" />
+                <h1 className="text-2xl font-bold">Saved Careers</h1>
+              </div>
+              <p className="text-muted-foreground">
+                Careers you&apos;re interested in, saved for later reference.
+              </p>
+            </div>
+            {careers.length > 1 && (
+              <button
+                onClick={handleDownloadAll}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Download All
+              </button>
+            )}
           </div>
-          <p className="text-muted-foreground">
-            Careers you&apos;re interested in, saved for later reference.
-          </p>
         </div>
 
         {/* Empty State */}
@@ -120,7 +147,7 @@ export default function SavedCareersPage() {
               heart icon to save it here.
             </p>
             <Link
-              href="/me"
+              href="/me/assessment"
               className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
             >
               Take Assessment
@@ -133,22 +160,60 @@ export default function SavedCareersPage() {
           {careers.map((career, index) => {
             const demand = demandBadge(career.demand);
             const score = career.confidence_score || 0;
+            const isConfirming = confirmDelete === career.career_name;
 
             return (
               <div
                 key={career.id}
-                className="bg-card rounded-xl p-5 card-shadow hover:card-shadow-hover transition-all duration-300 animate-fade-up relative group"
+                className="bg-card rounded-xl p-5 card-shadow hover:card-shadow-hover transition-all duration-300 animate-fade-up relative"
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
-                {/* Remove button */}
-                <button
-                  onClick={() => handleRemove(career.career_name)}
-                  disabled={removing === career.career_name}
-                  className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
-                  title="Remove from saved"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                {/* Delete confirmation overlay */}
+                {isConfirming && (
+                  <div className="absolute inset-0 bg-card/95 backdrop-blur-sm rounded-xl z-10 flex flex-col items-center justify-center p-6">
+                    <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
+                    <p className="text-sm font-medium text-center mb-1">
+                      Remove this career?
+                    </p>
+                    <p className="text-xs text-muted-foreground text-center mb-4">
+                      &quot;{career.career_name}&quot; will be permanently removed.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleRemove(career.career_name)}
+                        disabled={removing === career.career_name}
+                        className="px-4 py-1.5 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                      >
+                        {removing === career.career_name ? "Removing..." : "Remove"}
+                      </button>
+                      <button
+                        onClick={() => setConfirmDelete(null)}
+                        className="px-4 py-1.5 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action buttons */}
+                <div className="absolute top-4 right-4 flex items-center gap-1">
+                  <button
+                    onClick={() => handleDownload(career)}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all"
+                    title="Download career report"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(career.career_name)}
+                    disabled={removing === career.career_name}
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-all"
+                    title="Remove from saved"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
 
                 {/* Header */}
                 <div className="flex items-start gap-3 mb-3">
@@ -161,7 +226,7 @@ export default function SavedCareersPage() {
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-base leading-tight mb-1 pr-6">
+                    <h3 className="font-semibold text-base leading-tight mb-1 pr-16">
                       {career.career_name}
                     </h3>
                     <div className="flex items-center gap-2 flex-wrap">

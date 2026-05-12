@@ -16,8 +16,12 @@ import {
   GraduationCap,
   DollarSign,
   TrendingUp,
+  Download,
+  Trash2,
+  AlertCircle,
 } from "lucide-react";
-import { getRecommendationHistory } from "@/app/actions/historyActions";
+import { getRecommendationHistory, deleteRecommendationHistory } from "@/app/actions/historyActions";
+import { generateRecommendationReport } from "@/lib/generateReport";
 import LoadingIndicator from "@/components/ui/loadingIndicator";
 import Link from "next/link";
 
@@ -61,6 +65,8 @@ export default function HistoryPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -94,6 +100,39 @@ export default function HistoryPage() {
       return entry.ai_response?.data?.insights?.summary || "";
     } catch {
       return "";
+    }
+  };
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeleting(id);
+    const result = await deleteRecommendationHistory(id);
+    if (!result.error) {
+      setHistory(prev => prev.filter(entry => entry.id !== id));
+      if (expandedId === id) setExpandedId(null);
+    }
+    setDeleting(null);
+    setConfirmDelete(null);
+  };
+
+  const handleDownload = (e: React.MouseEvent, entry: HistoryEntry) => {
+    e.stopPropagation();
+    try {
+      const recommendations = getRecommendations(entry) || [];
+      const summary = getSummary(entry) || "";
+      
+      generateRecommendationReport({
+        summary,
+        overallConfidence: entry.overall_confidence || 0,
+        subjects: entry.academic_results || [],
+        skills: entry.skills || [],
+        interests: entry.interests || [],
+        personalityTraits: entry.personality_traits || [],
+        recommendations,
+      });
+    } catch (error) {
+      console.error("Failed to generate PDF report:", error);
+      alert("There was a problem generating the PDF report. Please try again.");
     }
   };
 
@@ -154,10 +193,41 @@ export default function HistoryPage() {
                 style={{ animationDelay: `${index * 0.05}s` }}
               >
                 {/* Session Header */}
-                <button
-                  onClick={() => setExpandedId(isExpanded ? null : entry.id)}
-                  className="w-full p-6 text-left hover:bg-muted/30 transition-colors"
+                <div
+                  className="w-full relative"
                 >
+                  {/* Delete Confirmation Overlay */}
+                  {confirmDelete === entry.id && (
+                    <div className="absolute inset-0 bg-card/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 border-b">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle className="h-5 w-5 text-red-500" />
+                        <p className="font-medium text-sm">Delete this history entry?</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={(e) => handleDelete(e, entry.id)}
+                          disabled={deleting === entry.id}
+                          className="px-4 py-1.5 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
+                        >
+                          {deleting === entry.id ? "Deleting..." : "Delete"}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDelete(null);
+                          }}
+                          className="px-4 py-1.5 text-sm font-medium rounded-lg border border-border hover:bg-muted transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div
+                    onClick={() => setExpandedId(isExpanded ? null : entry.id)}
+                    className="w-full p-6 text-left hover:bg-muted/30 transition-colors cursor-pointer"
+                  >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -203,8 +273,29 @@ export default function HistoryPage() {
                       )}
                     </div>
 
-                    {/* Confidence Circle + Expand */}
-                    <div className="flex items-center gap-3 shrink-0">
+                    {/* Actions, Confidence Circle + Expand */}
+                    <div className="flex items-center gap-4 shrink-0">
+                      {/* Action buttons (desktop/tablet) */}
+                      <div className="hidden sm:flex items-center gap-1 border-r pr-4 mr-2">
+                        <button
+                          onClick={(e) => handleDownload(e, entry)}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                          title="Download Report"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDelete(entry.id);
+                          }}
+                          className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                          title="Delete History"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
                       <div className={`flex flex-col items-center justify-center w-16 h-16 rounded-full border-2 ${confidenceRing(entry.overall_confidence)} bg-gradient-to-br ${confidenceBg(entry.overall_confidence)}`}>
                         <span className={`text-lg font-bold leading-none ${confidenceColor(entry.overall_confidence)}`}>
                           {entry.overall_confidence}%
@@ -220,7 +311,29 @@ export default function HistoryPage() {
                       )}
                     </div>
                   </div>
-                </button>
+                  </div>
+                
+                {/* Action buttons (mobile) */}
+                <div className="flex sm:hidden items-center justify-between px-6 pb-4 border-b border-border/40">
+                   <button
+                    onClick={(e) => handleDownload(e, entry)}
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    <Download className="h-3 w-3" />
+                    Download
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setConfirmDelete(entry.id);
+                    }}
+                    className="flex items-center gap-2 text-xs font-medium text-muted-foreground hover:text-red-500 transition-colors"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </button>
+                </div>
+                </div>
 
                 {/* Expanded Content */}
                 {isExpanded && (

@@ -67,6 +67,30 @@ export async function getRecommendationHistory() {
   return { data: data || [] };
 }
 
+export async function deleteRecommendationHistory(historyId: string) {
+  const supabase = await createClient();
+  const { data: authData, error: authError } = await supabase.auth.getClaims();
+
+  if (authError || !authData?.claims) {
+    return { error: "Not authenticated" };
+  }
+
+  const userId = (authData.claims as any).sub;
+
+  const { error } = await supabase
+    .from("recommendation_history")
+    .delete()
+    .eq("user_id", userId)
+    .eq("id", historyId);
+
+  if (error) {
+    console.error("Error deleting recommendation history:", error);
+    return { error: error.message };
+  }
+
+  return { success: true };
+}
+
 export interface SaveFeedbackParams {
   historyId: string;
   careerName: string;
