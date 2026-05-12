@@ -15,8 +15,7 @@ export const analysePdfDocument = async (pdfBase64: string) => {
 
     const content = [
         {
-            text: `Extract modules or subjects rename module name to property key to module_name and marks to percentage property related content of this PDF and return it as structured JSON format.
-            when return json use this json structure {modules:[{ module_name, percentage}]}` },
+            text: `Extract modules or subjects from this PDF and return as structured JSON. Rename module name to property key "module_name" and marks to "percentage" (as a number without the % sign). IMPORTANT: Do NOT include any "Overall Average" or aggregate/summary rows — only individual subjects. Use this JSON structure: {modules:[{ module_name, percentage }]}` },
         {
             inlineData: {
                 mimeType: 'application/pdf',
@@ -44,8 +43,17 @@ export const analysePdfDocument = async (pdfBase64: string) => {
 export const getRecommendations = async (data: { subject: any[], personality: any[], skills: any[], interests: any[] }) => {
     try {
         let subjects = {};
-        data.subject.forEach(obj => {
-            subjects = { ...subjects, [obj.name]: obj.percentage };
+        // Filter out "Overall Average" and similar aggregate rows
+        const filtered = data.subject.filter((obj: any) => {
+            const name = (obj.name || obj.module_name || '').toLowerCase().trim();
+            return !name.includes('overall average') && !name.includes('total') && !name.includes('aggregate');
+        });
+        filtered.forEach((obj: any) => {
+            // Clean percentage: remove extra % signs, parse as number
+            const pct = typeof obj.percentage === 'string'
+                ? obj.percentage.replace(/%/g, '').trim()
+                : obj.percentage;
+            subjects = { ...subjects, [obj.name || obj.module_name]: Number(pct) };
         });
 
         const res = await fetch('https://acgs-ai-engine.vercel.app/api/predict', {
