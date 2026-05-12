@@ -25,6 +25,7 @@ import { clearAccademicRecord } from "@/lib/store/slices/academicSlice";
 import { clearAssessment } from "@/lib/store/slices/assessmentSlice";
 import LoadingIndicator from "../ui/loadingIndicator";
 import { saveRecommendationHistory } from "@/app/actions/historyActions";
+import FeedbackCard from "./FeedbackCard";
 
 interface CareerRecommendation {
   title: string;
@@ -57,6 +58,7 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   const [recommendationsObject, setRecommendationsObject] = useState<any[]>([]);
   const [summary, setSummary] = useState<string>();
   const [overallConfidence, setOverallConfidence] = useState<number>(0);
+  const [savedHistoryId, setSavedHistoryId] = useState<string | null>(null);
   const hasSaved = useRef(false);
 
   const dispatch = useDispatch()
@@ -109,6 +111,9 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
           hasSaved.current = false; // Allow retry
         } else {
           console.log("Recommendation history saved successfully");
+          if (result.data?.id) {
+            setSavedHistoryId(result.data.id);
+          }
         }
       });
     }
@@ -274,6 +279,9 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
                   </Badge>
                 ))}
               </div>
+
+              {/* Feedback */}
+              <FeedbackCard historyId={savedHistoryId} careerName={rec.career} />
             </div>
           )})
           }
