@@ -14,6 +14,7 @@ import {
   BookOpen,
   RefreshCw,
   Shield,
+  Download,
 } from "lucide-react";
 import type { AssessmentData } from "./AssessmentFlow";
 import { useDispatch, useSelector } from "react-redux";
@@ -26,6 +27,9 @@ import { clearAssessment } from "@/lib/store/slices/assessmentSlice";
 import LoadingIndicator from "../ui/loadingIndicator";
 import { saveRecommendationHistory } from "@/app/actions/historyActions";
 import FeedbackCard from "./FeedbackCard";
+import SaveCareerButton from "./SaveCareerButton";
+import { getSavedCareerNames } from "@/app/actions/savedCareerActions";
+import { generateRecommendationReport } from "@/lib/generateReport";
 
 interface CareerRecommendation {
   title: string;
@@ -59,6 +63,7 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   const [summary, setSummary] = useState<string>();
   const [overallConfidence, setOverallConfidence] = useState<number>(0);
   const [savedHistoryId, setSavedHistoryId] = useState<string | null>(null);
+  const [savedCareerNames, setSavedCareerNames] = useState<string[]>([]);
   const hasSaved = useRef(false);
 
   const dispatch = useDispatch()
@@ -70,6 +75,15 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
       console.log({ reccomendationData })
     })();
   }, [])
+
+  // Load saved career names on mount
+  useEffect(() => {
+    getSavedCareerNames().then((result) => {
+      if (result.data) {
+        setSavedCareerNames(result.data as string[]);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (recommendationsNew.recommendations && recommendationsNew.recommendations.data ) {
@@ -138,6 +152,18 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
     window.location.reload();
   }
 
+  const handleDownloadReport = () => {
+    generateRecommendationReport({
+      summary,
+      overallConfidence,
+      subjects: assessmentData.subjects,
+      skills: assessmentData.skills,
+      interests: assessmentData.interests,
+      personalityTraits: assessmentData.personalityTraits,
+      recommendations: recommendationsObject,
+    });
+  };
+
   console.log({ assessment, recommendationsNew })
   return (
     <div className="min-h-screen bg-background">
@@ -158,10 +184,18 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
                 "Based on your academic profile, skills, interests, and personality traits.
               </p>
             </div>
-            <Button variant="outline" onClick={onRetakeAssessment}>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Retake Assessment
-            </Button>
+            <div className="flex items-center gap-2">
+              {recommendationsObject.length > 0 && (
+                <Button variant="outline" onClick={handleDownloadReport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Report
+                </Button>
+              )}
+              <Button variant="outline" onClick={onRetakeAssessment}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retake Assessment
+              </Button>
+            </div>
           </div>
         </div>
          {!summary &&
@@ -272,12 +306,24 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
                 </div>
               </div>
 
-              <div className="mt-4 flex flex-wrap gap-2">
-                {rec.matchedData.map((s: any) => (
-                  <Badge key={s} variant="secondary" className="text-xs">
-                    {s}
-                  </Badge>
-                ))}
+              <div className="mt-4 flex items-center justify-between flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {rec.matchedData.map((s: any) => (
+                    <Badge key={s} variant="secondary" className="text-xs">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+                <SaveCareerButton
+                  careerName={rec.career}
+                  pathway={rec.pathway}
+                  salaryRange={rec.salaryRange}
+                  demand={rec.jobDemand}
+                  educationPaths={rec.requiredQualifications}
+                  reason={rec.reason}
+                  confidenceScore={confidenceScore}
+                  initialSaved={savedCareerNames.includes(rec.career)}
+                />
               </div>
 
               {/* Feedback */}

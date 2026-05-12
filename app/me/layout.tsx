@@ -34,6 +34,7 @@ export default function ProtectedLayout({
 
                 <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
                   <a href="/me/history" className="hover:text-foreground transition-colors">History</a>
+                  <a href="/me/saved" className="hover:text-foreground transition-colors">Saved Careers</a>
                 </div>
                 {!hasEnvVars ? (
                   <EnvVarWarning />
