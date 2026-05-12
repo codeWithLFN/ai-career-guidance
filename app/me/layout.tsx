@@ -33,9 +33,7 @@ export default function ProtectedLayout({
                 </a>
 
                 <div className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
-                  {/* <a href="#features" className="hover:text-foreground transition-colors">Features</a>
-              <a href={"/how-it-works"} className="hover:text-foreground transition-colors">How It Works</a>
-              <a href="#careers" className="hover:text-foreground transition-colors">Careers</a> */}
+                  <a href="/me/history" className="hover:text-foreground transition-colors">History</a>
                 </div>
                 {!hasEnvVars ? (
                   <EnvVarWarning />

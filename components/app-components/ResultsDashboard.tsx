@@ -18,12 +18,13 @@ import {
 import type { AssessmentData } from "./AssessmentFlow";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/lib/store/store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getRecommendations } from "@/app/actions/actions";
 import { addRecommendations, clearRecommendations } from "@/lib/store/slices/recommendationSlice";
 import { clearAccademicRecord } from "@/lib/store/slices/academicSlice";
 import { clearAssessment } from "@/lib/store/slices/assessmentSlice";
 import LoadingIndicator from "../ui/loadingIndicator";
+import { saveRecommendationHistory } from "@/app/actions/historyActions";
 
 interface CareerRecommendation {
   title: string;
@@ -56,6 +57,7 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
   const [recommendationsObject, setRecommendationsObject] = useState<any[]>([]);
   const [summary, setSummary] = useState<string>();
   const [overallConfidence, setOverallConfidence] = useState<number>(0);
+  const hasSaved = useRef(false);
 
   const dispatch = useDispatch()
   const assessment = useSelector((state: RootState) => state.assessment);
@@ -89,6 +91,28 @@ const ResultsDashboard = ({ assessmentData, onBack, onRetake }: ResultsDashboard
     }
 
   }, [recommendationsNew])
+
+  // Auto-save to Supabase once recommendations are ready
+  useEffect(() => {
+    if (recommendationsObject.length > 0 && overallConfidence > 0 && !hasSaved.current) {
+      hasSaved.current = true;
+      saveRecommendationHistory({
+        academicResults: assessmentData.subjects,
+        skills: assessmentData.skills,
+        interests: assessmentData.interests,
+        personalityTraits: assessmentData.personalityTraits,
+        aiResponse: recommendationsNew.recommendations,
+        overallConfidence,
+      }).then((result) => {
+        if (result.error) {
+          console.error("Failed to save recommendation history:", result.error);
+          hasSaved.current = false; // Allow retry
+        } else {
+          console.log("Recommendation history saved successfully");
+        }
+      });
+    }
+  }, [recommendationsObject, overallConfidence]);
 
   const loadRecommendations = async (assessmentData: AssessmentData) => {
     const recommendations = await getRecommendations({
